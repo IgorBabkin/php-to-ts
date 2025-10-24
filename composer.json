@@ -4,7 +4,7 @@
     "type": "library",
     "license": "MIT",
     "keywords": ["php", "typescript", "generator", "dto", "converter", "type-conversion", "php8"],
-    "homepage": "https://github.com/IgorBabkin/php-to-ts-generator",
+    "homepage": "https://github.com/IgorBabkin/php-to-ts",
     "authors": [
         {
             "name": "Igor Babkin",
@@ -12,8 +12,8 @@
         }
     ],
     "support": {
-        "issues": "https://github.com/IgorBabkin/php-to-ts-generator/issues",
-        "source": "https://github.com/IgorBabkin/php-to-ts-generator"
+        "issues": "https://github.com/IgorBabkin/php-to-ts/issues",
+        "source": "https://github.com/IgorBabkin/php-to-ts"
     },
     "require": {
         "php": ">=8.1",
