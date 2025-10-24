@@ -1,0 +1,10 @@
+/**
+ * Simple user data transfer object
+ */
+export interface SimpleDTO {
+  name: string;
+  age: number;
+  balance: number;
+  isActive: boolean;
+  email: string | null;
+}

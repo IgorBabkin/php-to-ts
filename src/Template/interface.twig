@@ -1,0 +1,21 @@
+{% if imports is defined and imports|length > 0 %}
+{% for import in imports %}
+import { {{ import }} } from './{{ import }}';
+{% endfor %}
+
+{% endif %}
+{% if docComment %}
+/**
+ * {{ docComment|raw }}
+ */
+{% endif %}
+export interface {{ className }} {
+{% for property in properties %}
+{% if property.docComment %}
+  /**
+   * {{ property.docComment|raw }}
+   */
+{% endif %}
+  {{ property.name }}: {{ property.typeScriptType }};
+{% endfor %}
+}

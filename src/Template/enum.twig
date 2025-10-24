@@ -1,0 +1,10 @@
+{% if docComment %}
+/**
+ * {{ docComment|raw }}
+ */
+{% endif %}
+export enum {{ className }} {
+{% for case in cases %}
+  {{ case.name }} = '{{ case.value }}',
+{% endfor %}
+}

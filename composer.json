@@ -1,0 +1,51 @@
+{
+    "name": "igorbabkin/php-to-ts-generator",
+    "description": "Generate TypeScript interfaces from PHP DTO classes with support for nested classes",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["php", "typescript", "generator", "dto", "converter", "type-conversion", "php8"],
+    "homepage": "https://github.com/IgorBabkin/php-to-ts-generator",
+    "authors": [
+        {
+            "name": "Igor Babkin",
+            "homepage": "https://github.com/IgorBabkin"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/IgorBabkin/php-to-ts-generator/issues",
+        "source": "https://github.com/IgorBabkin/php-to-ts-generator"
+    },
+    "require": {
+        "php": ">=8.1",
+        "symfony/console": "^6.0|^7.0",
+        "twig/twig": "^3.0",
+        "nikic/php-parser": "^5.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0|^11.0",
+        "spatie/phpunit-snapshot-assertions": "^5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "PhpToTs\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PhpToTs\\Tests\\": "tests/"
+        }
+    },
+    "bin": [
+        "bin/php-to-ts"
+    ],
+    "scripts": {
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-html coverage"
+    },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

@@ -1,0 +1,11 @@
+{
+    "recommendations": [
+        "bmewburn.vscode-intelephense-client",
+        "xdebug.php-debug",
+        "junstyle.php-cs-fixer",
+        "neilbrayfield.php-docblocker",
+        "recca0120.vscode-phpunit",
+        "devsense.composer-php-vscode",
+        "whatwedo.twig"
+    ]
+}
