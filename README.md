@@ -6,6 +6,7 @@ Generate TypeScript interfaces from PHP DTO classes with full support for nested
 
 - ✅ **Simple DTOs**: Convert PHP classes with primitive types to TypeScript interfaces
 - ✅ **Nested Classes**: Automatically handles nested DTOs and generates proper imports
+- ✅ **Automatic Dependency Generation**: By default, generates all nested class files separately (disable with `--no-dependencies`)
 - ✅ **Deep Nesting**: Supports deeply nested structures (3+ levels)
 - ✅ **Arrays & Collections**: Typed arrays with proper TypeScript syntax
 - ✅ **Enums**: PHP 8.1+ enums converted to TypeScript enums
@@ -13,7 +14,7 @@ Generate TypeScript interfaces from PHP DTO classes with full support for nested
 - ✅ **DateTime**: Converts DateTime objects to string or Date
 - ✅ **Readonly Properties**: Respects PHP 8.1+ readonly modifier
 - ✅ **JSDoc Comments**: Preserves documentation from PHP docblocks
-- ✅ **Dependency Resolution**: Automatically generates all dependent types
+- ✅ **Duplicate Prevention**: Tracks classes within a single run to avoid generating duplicates
 
 ## Requirements
 
@@ -30,22 +31,28 @@ composer require php-to-ts-generator/php-to-ts-generator
 
 ### CLI Command
 
-Generate TypeScript from a directory:
+**Basic usage** (automatically generates all nested class files):
 
 ```bash
-vendor/bin/php-to-ts generate src/DTO --output=types/
+vendor/bin/php-to-ts src/DTO --output=types/
 ```
 
-Generate with dependencies:
+**Generate from a single file** (with all nested dependencies):
 
 ```bash
-vendor/bin/php-to-ts generate src/DTO --output=types/ --with-dependencies
+vendor/bin/php-to-ts src/DTO/UserDTO.php -o types/
 ```
 
-Generate from a single file:
+**Generate without nested dependencies**:
 
 ```bash
-vendor/bin/php-to-ts generate src/DTO/UserDTO.php -o types/
+vendor/bin/php-to-ts src/DTO --no-dependencies
+```
+
+**Custom output directory**:
+
+```bash
+vendor/bin/php-to-ts src/DTO -o frontend/types
 ```
 
 ### Programmatic Usage

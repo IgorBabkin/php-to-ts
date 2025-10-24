@@ -38,10 +38,10 @@ class GenerateCommand extends Command
                 './types'
             )
             ->addOption(
-                'with-dependencies',
-                'd',
+                'no-dependencies',
+                null,
                 InputOption::VALUE_NONE,
-                'Generate dependencies as well'
+                'Do not generate nested class dependencies (default is to generate them)'
             );
     }
 
@@ -50,7 +50,8 @@ class GenerateCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $source = $input->getArgument('source');
         $outputDir = $input->getOption('output');
-        $withDependencies = $input->getOption('with-dependencies');
+        $noDependencies = $input->getOption('no-dependencies');
+        $generateDependencies = !$noDependencies; // Generate dependencies by default
 
         if (!file_exists($source)) {
             $io->error("Source path '{$source}' does not exist");
@@ -76,23 +77,36 @@ class GenerateCommand extends Command
 
         $generated = 0;
         $errors = [];
+        $processedClasses = []; // Track already processed classes to avoid duplicates in single run
 
         foreach ($phpFiles as $file) {
             try {
                 $classes = $this->extractClassesFromFile($file);
 
                 foreach ($classes as $className) {
-                    if ($withDependencies) {
+                    if ($generateDependencies) {
                         $files = $generator->generateWithDependencies($className);
                         foreach ($files as $name => $typescript) {
+                            // Skip if already processed in this run
+                            if (isset($processedClasses[$name])) {
+                                continue;
+                            }
+
                             $this->writeTypeScriptFile($outputDir, $name, $typescript);
                             $generated++;
+                            $processedClasses[$name] = true;
                         }
                     } else {
                         $typescript = $generator->generate($className);
                         $shortName = (new \ReflectionClass($className))->getShortName();
+
+                        if (isset($processedClasses[$shortName])) {
+                            continue;
+                        }
+
                         $this->writeTypeScriptFile($outputDir, $shortName, $typescript);
                         $generated++;
+                        $processedClasses[$shortName] = true;
                     }
                 }
             } catch (\Throwable $e) {
@@ -164,6 +178,9 @@ class GenerateCommand extends Command
         return $classes;
     }
 
+    /**
+     * Write TypeScript file to disk
+     */
     private function writeTypeScriptFile(string $outputDir, string $className, string $content): void
     {
         $filename = $outputDir . '/' . $className . '.ts';
