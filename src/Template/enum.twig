@@ -1,6 +1,6 @@
 {% if docComment %}
 /**
- * {{ docComment|raw }}
+ * {{ docComment|cleanDocComment|raw }}
  */
 {% endif %}
 export enum {{ className }} {

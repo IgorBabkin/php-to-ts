@@ -16,7 +16,6 @@ use Twig\Loader\FilesystemLoader;
 class TypeScriptGenerator
 {
     private Environment $twig;
-    private TypeMapper $typeMapper;
 
     public function __construct()
     {
@@ -24,18 +23,15 @@ class TypeScriptGenerator
         $this->twig = new Environment($loader, [
             'autoescape' => false,
         ]);
-        $this->typeMapper = new TypeMapper();
+        $this->twig->addExtension(new TwigExtension());
     }
 
     public function generateInterface(ClassInfo $classInfo): string
     {
-        $properties = $this->prepareProperties($classInfo->getProperties());
-        $imports = $this->extractImports($classInfo->getDependencies());
-
         return $this->twig->render('interface.twig', [
             'className' => $classInfo->getClassName(),
-            'properties' => $properties,
-            'imports' => $imports,
+            'properties' => $classInfo->getProperties(),
+            'imports' => array_values(array_unique($classInfo->getDependencies())),
             'docComment' => $classInfo->getDocComment(),
         ]);
     }
@@ -52,9 +48,6 @@ class TypeScriptGenerator
             ];
         }
 
-        $docComment = $reflection->getDocComment();
-        $cleanDocComment = $docComment ? $this->cleanDocComment($docComment) : null;
-
         // Determine if backing type is string (should quote) or int (no quotes)
         $backingType = $reflection->getBackingType();
         $isStringEnum = $backingType && $backingType->getName() === 'string';
@@ -62,63 +55,9 @@ class TypeScriptGenerator
         return $this->twig->render('enum.twig', [
             'className' => $reflection->getShortName(),
             'cases' => $cases,
-            'docComment' => $cleanDocComment,
+            'docComment' => $reflection->getDocComment() ?: null,
             'isStringEnum' => $isStringEnum,
         ]);
     }
 
-    /**
-     * @param PropertyInfo[] $properties
-     * @return array<string, mixed>[]
-     */
-    private function prepareProperties(array $properties): array
-    {
-        $prepared = [];
-
-        foreach ($properties as $property) {
-            $tsType = $this->typeMapper->mapType(
-                $property->getType(),
-                $property->getArrayItemType()
-            );
-
-            if ($property->isNullable()) {
-                $tsType = $this->typeMapper->mapNullableType($tsType);
-            }
-
-            $prepared[] = [
-                'name' => $property->getName(),
-                'typeScriptType' => $tsType,
-                'docComment' => $property->getDocComment(),
-            ];
-        }
-
-        return $prepared;
-    }
-
-    /**
-     * @param string[] $dependencies
-     * @return string[]
-     */
-    private function extractImports(array $dependencies): array
-    {
-        return array_values(array_unique($dependencies));
-    }
-
-    private function cleanDocComment(string $docComment): string
-    {
-        $lines = explode("\n", $docComment);
-        $cleaned = [];
-
-        foreach ($lines as $line) {
-            $line = trim($line);
-            $line = preg_replace('/^\*+\s?/', '', $line);
-            $line = trim($line, '/* ');
-
-            if (!empty($line) && !str_starts_with($line, '@')) {
-                $cleaned[] = $line;
-            }
-        }
-
-        return implode("\n", $cleaned);
-    }
 }

@@ -16,6 +16,6 @@ export interface {{ className }} {
    * {{ property.docComment|raw }}
    */
 {% endif %}
-  {{ property.name }}: {{ property.typeScriptType }};
+  {{ property.name }}: {{ property|tsType }};
 {% endfor %}
 }
