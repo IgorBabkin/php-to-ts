@@ -29,13 +29,28 @@ class TypeScriptGenerator
 
     public function generateInterface(ClassInfo $classInfo): string
     {
+        // Dependencies now contain full class names, extract short names for imports
+        $imports = array_map(
+            fn($fullClassName) => $this->extractShortClassName($fullClassName),
+            $classInfo->getDependencies()
+        );
+
         return $this->twig->render('interface.twig', [
             'className' => $classInfo->getClassName(),
             'properties' => $classInfo->getProperties(),
-            'imports' => array_values(array_unique($classInfo->getDependencies())),
+            'imports' => array_values(array_unique($imports)),
             'docComment' => $classInfo->getDocComment(),
             'addTsExtensionToImports' => $this->addTsExtensionToImports,
         ]);
+    }
+
+    /**
+     * Extract short class name from full qualified class name
+     */
+    private function extractShortClassName(string $fullClassName): string
+    {
+        $parts = explode('\\', $fullClassName);
+        return end($parts);
     }
 
     public function generateEnum(string $enumClass): string

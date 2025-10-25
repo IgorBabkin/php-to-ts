@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2025-10-25
+
+### Fixed
+- **CRITICAL**: Cross-namespace dependency resolution now works correctly
+  - Dependencies from the same namespace as parent class are now properly resolved
+  - `generateWithDependencies()` now generates ALL nested class files, not just some
+  - Fixed issue where classes referenced in `@var` arrays weren't being generated
+  - Example: `@var TaskDTO[]` now correctly generates `TaskDTO.ts` even if in same namespace
+- Dependencies now store full class names internally to enable cross-namespace resolution
+- Import statements correctly use short names (no change to generated TypeScript)
+
+### Changed
+- `ClassAnalyzer::extractDependencies()` now returns full class names with namespaces
+- Added multi-strategy resolution: same namespace → loaded classes → fallback
+- `TypeScriptGenerator` now extracts short names from full class names for imports
+- Removed `resolveDependencyClass()` method (no longer needed)
+
+### Technical Details
+- Uses ReflectionClass namespace context to resolve short class names
+- Tries `class_exists()`, `interface_exists()`, `enum_exists()`, and `trait_exists()`
+- Falls back to searching loaded classes if not in same namespace
+- Dependencies list is now authoritative source of truth for class resolution
+
+### Tests
+- 81 tests passing (1 pre-existing known issue unchanged)
+- Updated `ClassAnalyzerTest` to expect full class names in dependencies
+- Verification script confirms cross-namespace resolution works
+- All integration tests pass with new implementation
+
 ## [1.4.0] - 2025-10-25
 
 ### Added

@@ -50,7 +50,8 @@ class ClassAnalyzerTest extends TestCase
         $result = $this->analyzer->analyze(UserDTO::class);
         $dependencies = $result->getDependencies();
 
-        $this->assertContains('AddressDTO', $dependencies);
+        // Dependencies now contain full class names with namespaces
+        $this->assertContains('PhpToTs\Tests\Fixtures\AddressDTO', $dependencies);
     }
 
     public function testAnalyzeArrayProperties(): void

@@ -14,9 +14,12 @@ use ReflectionUnionType;
  */
 class ClassAnalyzer
 {
+    private ?ReflectionClass $currentReflection = null;
+
     public function analyze(string $className): ClassInfo
     {
         $reflection = new ReflectionClass($className);
+        $this->currentReflection = $reflection; // Store for namespace context
 
         if ($reflection->isEnum()) {
             return $this->analyzeEnum($reflection);
@@ -114,7 +117,7 @@ class ClassAnalyzer
 
     /**
      * @param PropertyInfo[] $properties
-     * @return string[]
+     * @return string[] Full class names (with namespace)
      */
     private function extractDependencies(array $properties): array
     {
@@ -124,19 +127,25 @@ class ClassAnalyzer
             $type = $property->getType();
 
             // Check if it's a custom class (not a built-in type)
+            // Store FULL class name, not just short name
             if ($this->isCustomClass($type)) {
-                $dependencies[] = $this->extractShortClassName($type);
+                $dependencies[] = $type; // Full class name with namespace
             }
 
             // Check array item type
             if ($property->getArrayItemType() && $this->isCustomClass($property->getArrayItemType())) {
-                $dependencies[] = $this->extractShortClassName($property->getArrayItemType());
+                // array item type is already short name, need to find full name
+                // Get full type from property type which has namespace info
+                $fullArrayItemType = $this->resolveArrayItemTypeFullName($property);
+                if ($fullArrayItemType) {
+                    $dependencies[] = $fullArrayItemType;
+                }
             }
 
             // Check complex array types for class references
             if ($property->getComplexArrayType()) {
                 $complexType = $property->getComplexArrayType();
-                $classNames = $this->extractClassNamesFromComplexType($complexType);
+                $classNames = $this->extractClassNamesFromComplexType($complexType, $property);
                 foreach ($classNames as $className) {
                     $dependencies[] = $className;
                 }
@@ -310,15 +319,29 @@ class ClassAnalyzer
     }
 
     /**
+     * Resolve full class name for array item type
+     * Array item types are stored as short names, need to find full qualified name
+     */
+    private function resolveArrayItemTypeFullName(PropertyInfo $property): ?string
+    {
+        $shortName = $property->getArrayItemType();
+        if (!$shortName) {
+            return null;
+        }
+
+        return $this->resolveShortNameToFullName($shortName);
+    }
+
+    /**
      * Extract class names from complex array types
      * Examples:
-     * - array<UserDTO> → ['UserDTO']
-     * - array<string, AddressDTO> → ['AddressDTO']
-     * - array{user: UserDTO, address: AddressDTO} → ['UserDTO', 'AddressDTO']
+     * - array<UserDTO> → ['Fully\Qualified\UserDTO']
+     * - array<string, AddressDTO> → ['Fully\Qualified\AddressDTO']
+     * - array{user: UserDTO, address: AddressDTO} → ['Fully\Qualified\UserDTO', 'Fully\Qualified\AddressDTO']
      *
-     * @return string[]
+     * @return string[] Full class names with namespaces
      */
-    private function extractClassNamesFromComplexType(string $complexType): array
+    private function extractClassNamesFromComplexType(string $complexType, PropertyInfo $property): array
     {
         $classNames = [];
 
@@ -331,7 +354,11 @@ class ClassAnalyzer
                 // Remove union types (e.g., "Type|null" → "Type")
                 $part = preg_replace('/\s*\|\s*null\s*$/', '', $part);
                 if ($this->isCustomClass($part)) {
-                    $classNames[] = $this->extractShortClassName($part);
+                    // Try to resolve to full class name
+                    $fullName = $this->resolveShortNameToFullName($part);
+                    if ($fullName) {
+                        $classNames[] = $fullName;
+                    }
                 }
             }
         }
@@ -347,7 +374,11 @@ class ClassAnalyzer
                     foreach ($types as $type) {
                         $type = trim($type);
                         if ($type !== 'null' && $this->isCustomClass($type)) {
-                            $classNames[] = $this->extractShortClassName($type);
+                            // Try to resolve to full class name
+                            $fullName = $this->resolveShortNameToFullName($type);
+                            if ($fullName) {
+                                $classNames[] = $fullName;
+                            }
                         }
                     }
                 }
@@ -355,5 +386,44 @@ class ClassAnalyzer
         }
 
         return array_unique($classNames);
+    }
+
+    /**
+     * Resolve a short class name to its full qualified name
+     * Tries multiple strategies to find the full class name
+     */
+    private function resolveShortNameToFullName(string $shortName): ?string
+    {
+        // If it already has namespace separators, it's already a full name
+        if (str_contains($shortName, '\\')) {
+            return $shortName;
+        }
+
+        // Strategy 1: Try same namespace as current class
+        if ($this->currentReflection) {
+            $namespace = $this->currentReflection->getNamespaceName();
+            $fullName = $namespace . '\\' . $shortName;
+
+            if (class_exists($fullName) || interface_exists($fullName) || enum_exists($fullName) || trait_exists($fullName)) {
+                return $fullName;
+            }
+        }
+
+        // Strategy 2: Try to find in already loaded classes
+        $loadedClasses = array_merge(
+            get_declared_classes(),
+            get_declared_interfaces(),
+            get_declared_traits()
+        );
+
+        foreach ($loadedClasses as $loadedClass) {
+            if ($this->extractShortClassName($loadedClass) === $shortName) {
+                return $loadedClass;
+            }
+        }
+
+        // Strategy 3: If not found, return the short name
+        // (might still work in some contexts)
+        return $shortName;
     }
 }

@@ -71,11 +71,12 @@ class PhpToTsGenerator
                 $result[$className] = $this->generator->generateInterface($classInfo);
 
                 // Add dependencies to process queue
-                foreach ($classInfo->getDependencies() as $dependency) {
-                    // Try to resolve dependency to full class name
-                    $dependencyClass = $this->resolveDependencyClass($dependency, $classInfo->getNamespace());
-                    if ($dependencyClass && !isset($processed[$dependencyClass])) {
-                        $toProcess[] = $dependencyClass;
+                // Dependencies now contain full class names with namespaces
+                foreach ($classInfo->getDependencies() as $dependencyFullClass) {
+                    // Check if class/enum exists
+                    if ((class_exists($dependencyFullClass) || enum_exists($dependencyFullClass))
+                        && !isset($processed[$dependencyFullClass])) {
+                        $toProcess[] = $dependencyFullClass;
                     }
                 }
             }
@@ -84,21 +85,5 @@ class PhpToTsGenerator
         }
 
         return $result;
-    }
-
-    /**
-     * Try to resolve a dependency class name
-     */
-    private function resolveDependencyClass(string $shortClassName, string $namespace): ?string
-    {
-        // Try same namespace first
-        $fullClassName = $namespace . '\\' . $shortClassName;
-
-        if (class_exists($fullClassName) || enum_exists($fullClassName)) {
-            return $fullClassName;
-        }
-
-        // If not found, return null (could be from a different namespace)
-        return null;
     }
 }
