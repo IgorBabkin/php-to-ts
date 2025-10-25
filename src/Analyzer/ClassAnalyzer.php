@@ -43,6 +43,11 @@ class ClassAnalyzer
         $properties = [];
 
         foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
+            // Skip properties marked with #[Exclude] attribute
+            if ($this->hasExcludeAttribute($property)) {
+                continue;
+            }
+
             $type = $property->getType();
             $propertyType = null;
             $isNullable = false;
@@ -54,7 +59,8 @@ class ClassAnalyzer
 
                 // Check for array type in docblock
                 if ($propertyType === 'array') {
-                    $arrayItemType = $this->extractArrayItemType($property->getDocComment());
+                    $docComment = $property->getDocComment();
+                    $arrayItemType = $this->extractArrayItemType($docComment);
                 }
             } elseif ($type instanceof ReflectionUnionType) {
                 $types = $type->getTypes();
@@ -73,6 +79,12 @@ class ClassAnalyzer
                 $propertyType = 'mixed';
             }
 
+            // Extract complex array type from PHPDoc if present
+            $complexArrayType = null;
+            if ($propertyType === 'array') {
+                $complexArrayType = $this->extractComplexArrayType($property->getDocComment());
+            }
+
             $properties[] = new PropertyInfo(
                 name: $property->getName(),
                 type: $propertyType,
@@ -80,6 +92,7 @@ class ClassAnalyzer
                 isReadonly: $property->isReadOnly(),
                 arrayItemType: $arrayItemType,
                 docComment: $this->extractDocComment($property->getDocComment()),
+                complexArrayType: $complexArrayType,
             );
         }
 
@@ -186,6 +199,47 @@ class ClassAnalyzer
         return null;
     }
 
+    /**
+     * Extract complex array type from PHPDoc
+     * Returns full type string for array{...} or array<...> patterns
+     */
+    private function extractComplexArrayType(string|false $docComment): ?string
+    {
+        if ($docComment === false) {
+            return null;
+        }
+
+        // Look for @var array{...} or @var array<...>
+        // Need to handle nested structures, so count braces/brackets
+        if (preg_match('/@var\s+(array\s*[{<])/', $docComment, $matches, PREG_OFFSET_CAPTURE)) {
+            $start = $matches[1][1];
+            $openChar = $matches[1][0][strlen($matches[1][0]) - 1]; // { or <
+            $closeChar = $openChar === '{' ? '}' : '>';
+
+            $depth = 1;
+            $length = strlen($docComment);
+            $i = $start + strlen($matches[1][0]);
+
+            while ($i < $length && $depth > 0) {
+                $char = $docComment[$i];
+                if ($char === $openChar) {
+                    $depth++;
+                } elseif ($char === $closeChar) {
+                    $depth--;
+                } elseif ($char === "\n" && $depth === 0) {
+                    break;
+                }
+                $i++;
+            }
+
+            if ($depth === 0) {
+                return trim(substr($docComment, $start, $i - $start));
+            }
+        }
+
+        return null;
+    }
+
     private function analyzeEnum(ReflectionClass $reflection): ClassInfo
     {
         return new ClassInfo(
@@ -196,5 +250,14 @@ class ClassAnalyzer
             docComment: $this->extractDocComment($reflection->getDocComment()),
             isEnum: true,
         );
+    }
+
+    /**
+     * Check if property has #[Exclude] attribute
+     */
+    private function hasExcludeAttribute(ReflectionProperty $property): bool
+    {
+        $attributes = $property->getAttributes(\PhpToTs\Attribute\Exclude::class);
+        return !empty($attributes);
     }
 }

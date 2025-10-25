@@ -1,0 +1,25 @@
+/**
+ * DTO with generic array types
+ */
+export interface GenericArrayDTO {
+  /**
+   * Generic array with string keys
+@var array<string, int>
+   */
+  scores: Record<string, number>;
+  /**
+   * Generic array with int keys
+@var array<int, string>
+   */
+  names: Record<number, string>;
+  /**
+   * Generic array single type (same as T[])
+@var array<string>
+   */
+  tags: string[];
+  /**
+   * Regular array syntax for comparison
+@var string[]
+   */
+  simple: string[];
+}

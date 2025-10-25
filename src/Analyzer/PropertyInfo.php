@@ -16,6 +16,7 @@ class PropertyInfo
         private readonly bool $isReadonly,
         private readonly ?string $arrayItemType = null,
         private readonly ?string $docComment = null,
+        private readonly ?string $complexArrayType = null,
     ) {
     }
 
@@ -47,5 +48,10 @@ class PropertyInfo
     public function getDocComment(): ?string
     {
         return $this->docComment;
+    }
+
+    public function getComplexArrayType(): ?string
+    {
+        return $this->complexArrayType;
     }
 }

@@ -1,0 +1,9 @@
+/**
+ * DTO with excluded regular class properties
+ */
+export interface ExcludeClassPropertyDTO {
+  id: number;
+  name: string;
+  email: string;
+  isActive: boolean;
+}

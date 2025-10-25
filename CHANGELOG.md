@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-10-25
+
+### Added
+- `#[Exclude]` attribute to exclude properties from TypeScript generation
+- Complex PHPDoc array type support:
+  - `array{foo: int, bar: string}` → `{ foo: number; bar: string }` (shaped arrays)
+  - `array<string, int>` → `Record<string, number>` (generic key-value arrays)
+  - `array<string>` → `string[]` (generic single-type arrays)
+  - Optional fields: `array{id: int, name?: string}` → `{ id: number; name?: string }`
+  - Nullable fields: `array{email: string|null}` → `{ email: string | null }`
+- ComplexArrayTypeParser for parsing complex array types
+- 16 new tests (75 total tests, 233 assertions)
+- New fixtures: ShapedArrayDTO, GenericArrayDTO, ExcludeAttributeDTO, ExcludeClassPropertyDTO
+
+### Changed
+- PropertyInfo now includes complexArrayType field
+- ClassAnalyzer skips properties with #[Exclude] attribute
+- TwigExtension checks for complex array types before regular mapping
+
+### Known Issues
+- Nested shaped arrays (e.g., `array{user: array{id: int}}`) partially supported (1 test failing)
+
 ## [1.2.0] - 2025-10-25
 
 ### Added

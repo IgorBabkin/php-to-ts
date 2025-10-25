@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace PhpToTs\Generator;
 
+use PhpToTs\Analyzer\ComplexArrayTypeParser;
 use PhpToTs\Analyzer\PropertyInfo;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
@@ -15,10 +16,12 @@ use Twig\TwigFilter;
 class TwigExtension extends AbstractExtension
 {
     private TypeMapper $typeMapper;
+    private ComplexArrayTypeParser $complexArrayParser;
 
     public function __construct()
     {
         $this->typeMapper = new TypeMapper();
+        $this->complexArrayParser = new ComplexArrayTypeParser();
     }
 
     public function getFilters(): array
@@ -34,6 +37,13 @@ class TwigExtension extends AbstractExtension
      */
     public function toTypeScriptType(PropertyInfo $property): string
     {
+        // Check for complex array types first (array{...} or array<...>)
+        $complexArrayType = $property->getComplexArrayType();
+        if ($complexArrayType !== null && $this->complexArrayParser->isComplexArrayType($complexArrayType)) {
+            return $this->complexArrayParser->parse($complexArrayType);
+        }
+
+        // Fall back to regular type mapping
         $tsType = $this->typeMapper->mapType(
             $property->getType(),
             $property->getArrayItemType()

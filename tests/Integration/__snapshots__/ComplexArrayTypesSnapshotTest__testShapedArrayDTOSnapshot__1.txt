@@ -1,0 +1,25 @@
+/**
+ * DTO with shaped array types
+ */
+export interface ShapedArrayDTO {
+  /**
+   * Simple shaped array
+@var array{id: int, name: string, active: bool}
+   */
+  user: { id: number; name: string; active: boolean };
+  /**
+   * Shaped array with nullable fields
+@var array{id: int, email: string|null, phone: ?string}
+   */
+  contact: { id: number; email: string | null; phone: string | null };
+  /**
+   * Shaped array with optional fields
+@var array{id: int, name?: string, email?: string}
+   */
+  profile: { id: number; name?: string; email?: string };
+  /**
+   * Nested shaped arrays
+@var array{user: array{id: int, name: string}, meta: array{created: string}}
+   */
+  data: { user: any };
+}

@@ -1,0 +1,8 @@
+/**
+ * DTO with excluded properties
+ */
+export interface ExcludeAttributeDTO {
+  id: number;
+  name: string;
+  email: string;
+}

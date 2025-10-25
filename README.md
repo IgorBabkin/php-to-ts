@@ -12,6 +12,9 @@ Generate TypeScript interfaces from PHP DTO classes with full support for nested
 - ✅ **Arrays & Collections**: Typed arrays with proper TypeScript syntax
 - ✅ **Enums**: PHP 8.1+ enums converted to TypeScript enums (string and int backed)
 - ✅ **Int Enums**: Numeric enum values without quotes (e.g., `LOW = 1`)
+- ✅ **Complex Array Types**: PHPDoc shaped arrays `array{id: int, name: string}` → `{ id: number; name: string }`
+- ✅ **Generic Arrays**: PHPDoc generic arrays `array<string, int>` → `Record<string, number>`
+- ✅ **Exclude Attribute**: Use `#[Exclude]` to exclude properties from TypeScript generation
 - ✅ **Nullable Types**: Proper handling of nullable properties
 - ✅ **DateTime**: Converts DateTime objects to string or Date
 - ✅ **Readonly Properties**: Respects PHP 8.1+ readonly modifier
@@ -224,6 +227,63 @@ export interface UserDTO {
 }
 ```
 
+### Complex Array Types
+
+**PHP:**
+```php
+namespace App\DTO;
+
+class DataDTO
+{
+    public function __construct(
+        /** @var array{id: int, name: string} */
+        public readonly array $user,
+        /** @var array<string, int> */
+        public readonly array $scores,
+    ) {}
+}
+```
+
+**Generated TypeScript:**
+```typescript
+export interface DataDTO {
+  user: { id: number; name: string };
+  scores: Record<string, number>;
+}
+```
+
+### Exclude Attribute
+
+**PHP:**
+```php
+namespace App\DTO;
+
+use PhpToTs\Attribute\Exclude;
+
+class UserDTO
+{
+    public function __construct(
+        public readonly int $id,
+        public readonly string $name,
+        public readonly string $email,
+        #[Exclude]
+        public readonly string $passwordHash,
+        #[Exclude]
+        public readonly ?string $internalNotes = null,
+    ) {}
+}
+```
+
+**Generated TypeScript:**
+```typescript
+export interface UserDTO {
+  id: number;
+  name: string;
+  email: string;
+  // passwordHash and internalNotes are excluded
+}
+```
+
 ## Type Mapping
 
 | PHP Type | TypeScript Type |
@@ -233,6 +293,9 @@ export interface UserDTO {
 | `bool` | `boolean` |
 | `array` | `any[]` |
 | `string[]` (docblock) | `string[]` |
+| `array{id: int, name: string}` | `{ id: number; name: string }` |
+| `array<string, int>` | `Record<string, number>` |
+| `array<string>` | `string[]` |
 | `CustomClass` | `CustomClass` |
 | `?Type` | `Type \| null` |
 | `DateTime` | `string` |
