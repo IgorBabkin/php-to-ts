@@ -1,0 +1,10 @@
+import { AddressDTO } from './AddressDTO';
+
+/**
+ * DTO with array types in constructor @param tags
+ */
+export interface ConstructorParamArrayDTO {
+  addresses: AddressDTO[];
+  scores: Record<string, number>;
+  tags: string[] | null;
+}

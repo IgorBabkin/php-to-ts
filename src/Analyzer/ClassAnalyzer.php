@@ -42,6 +42,10 @@ class ClassAnalyzer
     {
         $properties = [];
 
+        // Get constructor docblock for @param tags
+        $constructor = $reflection->getConstructor();
+        $constructorDocComment = $constructor ? $constructor->getDocComment() : false;
+
         foreach ($reflection->getProperties(ReflectionProperty::IS_PUBLIC) as $property) {
             // Skip properties marked with #[Exclude] attribute
             if ($this->hasExcludeAttribute($property)) {
@@ -57,9 +61,13 @@ class ClassAnalyzer
                 $propertyType = $type->getName();
                 $isNullable = $type->allowsNull() && $propertyType !== 'mixed';
 
-                // Check for array type in docblock
+                // Check for array type in docblock (both property and constructor @param)
                 if ($propertyType === 'array') {
-                    $docComment = $property->getDocComment();
+                    $propertyDocComment = $property->getDocComment();
+                    $paramDocComment = $this->extractParamDocComment($constructorDocComment, $property->getName());
+
+                    // Try property docblock first, then constructor @param
+                    $docComment = $propertyDocComment !== false ? $propertyDocComment : $paramDocComment;
                     $arrayItemType = $this->extractArrayItemType($docComment);
                 }
             } elseif ($type instanceof ReflectionUnionType) {
@@ -82,7 +90,12 @@ class ClassAnalyzer
             // Extract complex array type from PHPDoc if present
             $complexArrayType = null;
             if ($propertyType === 'array') {
-                $complexArrayType = $this->extractComplexArrayType($property->getDocComment());
+                $propertyDocComment = $property->getDocComment();
+                $paramDocComment = $this->extractParamDocComment($constructorDocComment, $property->getName());
+
+                // Try property docblock first, then constructor @param
+                $docComment = $propertyDocComment !== false ? $propertyDocComment : $paramDocComment;
+                $complexArrayType = $this->extractComplexArrayType($docComment);
             }
 
             $properties[] = new PropertyInfo(
@@ -118,6 +131,15 @@ class ClassAnalyzer
             // Check array item type
             if ($property->getArrayItemType() && $this->isCustomClass($property->getArrayItemType())) {
                 $dependencies[] = $this->extractShortClassName($property->getArrayItemType());
+            }
+
+            // Check complex array types for class references
+            if ($property->getComplexArrayType()) {
+                $complexType = $property->getComplexArrayType();
+                $classNames = $this->extractClassNamesFromComplexType($complexType);
+                foreach ($classNames as $className) {
+                    $dependencies[] = $className;
+                }
             }
         }
 
@@ -191,8 +213,13 @@ class ClassAnalyzer
             return null;
         }
 
-        // Look for @var Type[] pattern
-        if (preg_match('/@var\s+([a-zA-Z0-9_\\\\]+)\[\]/', $docComment, $matches)) {
+        // Look for @var or @param Type[] pattern
+        if (preg_match('/(?:@var|@param)\s+([a-zA-Z0-9_\\\\]+)\[\]/', $docComment, $matches)) {
+            return $this->extractShortClassName($matches[1]);
+        }
+
+        // Look for @var or @param array<Type> pattern (single type generic)
+        if (preg_match('/(?:@var|@param)\s+array\s*<\s*([a-zA-Z0-9_\\\\]+)\s*>/', $docComment, $matches)) {
             return $this->extractShortClassName($matches[1]);
         }
 
@@ -202,6 +229,7 @@ class ClassAnalyzer
     /**
      * Extract complex array type from PHPDoc
      * Returns full type string for array{...} or array<...> patterns
+     * Looks for both @var and @param tags
      */
     private function extractComplexArrayType(string|false $docComment): ?string
     {
@@ -209,9 +237,9 @@ class ClassAnalyzer
             return null;
         }
 
-        // Look for @var array{...} or @var array<...>
+        // Look for @var or @param with array{...} or array<...>
         // Need to handle nested structures, so count braces/brackets
-        if (preg_match('/@var\s+(array\s*[{<])/', $docComment, $matches, PREG_OFFSET_CAPTURE)) {
+        if (preg_match('/(?:@var|@param)\s+(array\s*[{<])/', $docComment, $matches, PREG_OFFSET_CAPTURE)) {
             $start = $matches[1][1];
             $openChar = $matches[1][0][strlen($matches[1][0]) - 1]; // { or <
             $closeChar = $openChar === '{' ? '}' : '>';
@@ -240,6 +268,26 @@ class ClassAnalyzer
         return null;
     }
 
+    /**
+     * Extract @param docblock for a specific parameter from constructor docblock
+     */
+    private function extractParamDocComment(string|false $constructorDoc, string $paramName): string|false
+    {
+        if ($constructorDoc === false) {
+            return false;
+        }
+
+        // Look for @param <type> $paramName
+        // Type can be complex like array<string, int> or array{id: int, name: string}
+        // Pattern: @param followed by type (which may contain <>, {}, |, spaces), then $paramName
+        if (preg_match('/@param\s+([^\$\n]+?)\s+\$' . preg_quote($paramName, '/') . '(?:\s|$)/m', $constructorDoc, $matches)) {
+            $type = trim($matches[1]);
+            return '@param ' . $type . ' $' . $paramName;
+        }
+
+        return false;
+    }
+
     private function analyzeEnum(ReflectionClass $reflection): ClassInfo
     {
         return new ClassInfo(
@@ -259,5 +307,53 @@ class ClassAnalyzer
     {
         $attributes = $property->getAttributes(\PhpToTs\Attribute\Exclude::class);
         return !empty($attributes);
+    }
+
+    /**
+     * Extract class names from complex array types
+     * Examples:
+     * - array<UserDTO> → ['UserDTO']
+     * - array<string, AddressDTO> → ['AddressDTO']
+     * - array{user: UserDTO, address: AddressDTO} → ['UserDTO', 'AddressDTO']
+     *
+     * @return string[]
+     */
+    private function extractClassNamesFromComplexType(string $complexType): array
+    {
+        $classNames = [];
+
+        // For array<Type> or array<Key, Type>, extract class names
+        if (preg_match('/array\s*<([^>]+)>/', $complexType, $matches)) {
+            $content = $matches[1];
+            // Split by comma, check each part
+            $parts = array_map('trim', explode(',', $content));
+            foreach ($parts as $part) {
+                // Remove union types (e.g., "Type|null" → "Type")
+                $part = preg_replace('/\s*\|\s*null\s*$/', '', $part);
+                if ($this->isCustomClass($part)) {
+                    $classNames[] = $this->extractShortClassName($part);
+                }
+            }
+        }
+
+        // For array{key: Type, ...}, extract class names from values
+        if (preg_match('/array\s*\{([^}]+)\}/', $complexType, $matches)) {
+            $content = $matches[1];
+            // Match field definitions: "name: Type" or "name?: Type"
+            if (preg_match_all('/[a-zA-Z0-9_]+\??\s*:\s*([a-zA-Z0-9_\\\\|]+)/', $content, $fieldMatches)) {
+                foreach ($fieldMatches[1] as $fieldType) {
+                    // Remove union types
+                    $types = explode('|', $fieldType);
+                    foreach ($types as $type) {
+                        $type = trim($type);
+                        if ($type !== 'null' && $this->isCustomClass($type)) {
+                            $classNames[] = $this->extractShortClassName($type);
+                        }
+                    }
+                }
+            }
+        }
+
+        return array_unique($classNames);
     }
 }

@@ -1,0 +1,46 @@
+NestedDependencyDTO: |
+    import { AddressDTO } from './AddressDTO';
+    import { RoleEnum } from './RoleEnum';
+    import { UserDTO } from './UserDTO';
+
+    /**
+     * DTO with nested dependencies in constructor params
+     */
+    export interface NestedDependencyDTO {
+      name: string;
+      primaryAddress: AddressDTO;
+      role: RoleEnum;
+      addresses: AddressDTO[];
+      users: UserDTO[];
+    }
+AddressDTO: |
+    /**
+     * Address data transfer object
+     */
+    export interface AddressDTO {
+      street: string;
+      city: string;
+      zipCode: string;
+      country: string | null;
+    }
+RoleEnum: |
+    /**
+     * User role enumeration
+     */
+    export enum RoleEnum {
+      ADMIN = 'admin',
+      USER = 'user',
+      GUEST = 'guest',
+    }
+UserDTO: |
+    import { AddressDTO } from './AddressDTO';
+
+    /**
+     * User with nested address
+     */
+    export interface UserDTO {
+      id: string;
+      username: string;
+      address: AddressDTO;
+      billingAddress: AddressDTO | null;
+    }

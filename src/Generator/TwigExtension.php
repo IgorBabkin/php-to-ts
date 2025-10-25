@@ -40,7 +40,14 @@ class TwigExtension extends AbstractExtension
         // Check for complex array types first (array{...} or array<...>)
         $complexArrayType = $property->getComplexArrayType();
         if ($complexArrayType !== null && $this->complexArrayParser->isComplexArrayType($complexArrayType)) {
-            return $this->complexArrayParser->parse($complexArrayType);
+            $tsType = $this->complexArrayParser->parse($complexArrayType);
+
+            // Apply nullable if needed
+            if ($property->isNullable()) {
+                $tsType = $this->typeMapper->mapNullableType($tsType);
+            }
+
+            return $tsType;
         }
 
         // Fall back to regular type mapping
