@@ -22,6 +22,8 @@ Generate TypeScript interfaces from PHP DTO classes with full support for nested
 - ✅ **Methods Omitted**: Class methods are automatically excluded from interfaces
 - ✅ **Duplicate Prevention**: Tracks classes within a single run to avoid generating duplicates
 - ✅ **.ts Extension**: Optional flag to add `.ts` extension to imports for ESM compatibility
+- ✅ **Namespace-Based Input**: PSR-4 namespace patterns with glob support (`\App\DTO\*`)
+- ✅ **Flexible Input**: Supports both file paths and namespace patterns
 
 ## Requirements
 
@@ -37,6 +39,8 @@ composer require php-to-ts-generator/php-to-ts-generator
 ## Usage
 
 ### CLI Command
+
+#### File-Based Input (Original Method)
 
 **Basic usage** (automatically generates all nested class files):
 
@@ -55,6 +59,32 @@ vendor/bin/php-to-ts src/DTO/UserDTO.php -o types/
 ```bash
 vendor/bin/php-to-ts src/DTO --no-dependencies
 ```
+
+#### Namespace-Based Input (PSR-4)
+
+**Generate single class by namespace**:
+
+```bash
+vendor/bin/php-to-ts "App\DTO\UserDTO" --base-dir=src --namespace-prefix="App" -o types/
+```
+
+**Generate all classes in a namespace** (glob pattern):
+
+```bash
+vendor/bin/php-to-ts "App\DTO\*" --base-dir=src --namespace-prefix="App" -o types/
+```
+
+**Real-world example**:
+
+```bash
+# Generate all Tariff-related DTOs
+vendor/bin/php-to-ts "LMS\EV\View\Tariff\*" --base-dir=src --namespace-prefix="LMS\EV" -o frontend/types/
+
+# With .ts extensions for ESM
+vendor/bin/php-to-ts "LMS\EV\View\Tariff\*" --base-dir=src --namespace-prefix="LMS\EV" -o frontend/types/ --add-ts-extension-to-imports
+```
+
+#### Additional Options
 
 **Custom output directory**:
 

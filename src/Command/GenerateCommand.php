@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PhpToTs\Command;
 
 use PhpToTs\PhpToTsGenerator;
+use PhpToTs\Resolver\NamespaceResolver;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use RegexIterator;
@@ -48,6 +49,18 @@ class GenerateCommand extends Command
                 null,
                 InputOption::VALUE_NONE,
                 'Add .ts extension to import paths (e.g., "./User.ts" instead of "./User")'
+            )
+            ->addOption(
+                'base-dir',
+                'b',
+                InputOption::VALUE_REQUIRED,
+                'Base directory for PSR-4 namespace resolution (e.g., "src"). When provided, source is treated as namespace pattern'
+            )
+            ->addOption(
+                'namespace-prefix',
+                'p',
+                InputOption::VALUE_REQUIRED,
+                'Namespace prefix to remove when mapping to file path (e.g., "PhpToTs\Tests" for baseDir "tests")'
             );
     }
 
@@ -59,11 +72,8 @@ class GenerateCommand extends Command
         $noDependencies = $input->getOption('no-dependencies');
         $generateDependencies = !$noDependencies; // Generate dependencies by default
         $addTsExtensionToImports = (bool) $input->getOption('add-ts-extension-to-imports');
-
-        if (!file_exists($source)) {
-            $io->error("Source path '{$source}' does not exist");
-            return Command::FAILURE;
-        }
+        $baseDir = $input->getOption('base-dir');
+        $namespacePrefix = $input->getOption('namespace-prefix');
 
         // Create output directory if it doesn't exist
         if (!is_dir($outputDir) && !mkdir($outputDir, 0755, true)) {
@@ -72,52 +82,87 @@ class GenerateCommand extends Command
         }
 
         $generator = new PhpToTsGenerator(addTsExtensionToImports: $addTsExtensionToImports);
-        $phpFiles = $this->findPhpFiles($source);
 
-        if (empty($phpFiles)) {
-            $io->warning('No PHP files found');
+        // Determine if using namespace-based or file-based input
+        $classes = [];
+        if ($baseDir !== null) {
+            // Namespace-based input (PSR-4)
+            try {
+                $classes = $this->resolveNamespacePattern($source, $baseDir, $namespacePrefix, $io);
+            } catch (\Throwable $e) {
+                $io->error("Error resolving namespace pattern: {$e->getMessage()}");
+                return Command::FAILURE;
+            }
+
+            if (empty($classes)) {
+                $io->warning('No classes found for namespace pattern: ' . $source);
+                return Command::SUCCESS;
+            }
+        } else {
+            // File-based input (original behavior)
+            if (!file_exists($source)) {
+                $io->error("Source path '{$source}' does not exist");
+                return Command::FAILURE;
+            }
+
+            $phpFiles = $this->findPhpFiles($source);
+
+            if (empty($phpFiles)) {
+                $io->warning('No PHP files found');
+                return Command::SUCCESS;
+            }
+
+            // Extract classes from files
+            foreach ($phpFiles as $file) {
+                try {
+                    $fileClasses = $this->extractClassesFromFile($file);
+                    $classes = array_merge($classes, $fileClasses);
+                } catch (\Throwable $e) {
+                    $io->warning("Error processing {$file}: {$e->getMessage()}");
+                }
+            }
+        }
+
+        if (empty($classes)) {
+            $io->warning('No classes found');
             return Command::SUCCESS;
         }
 
         $io->title('PHP to TypeScript Generator');
-        $io->progressStart(count($phpFiles));
+        $io->progressStart(count($classes));
 
         $generated = 0;
         $errors = [];
         $processedClasses = []; // Track already processed classes to avoid duplicates in single run
 
-        foreach ($phpFiles as $file) {
+        foreach ($classes as $className) {
             try {
-                $classes = $this->extractClassesFromFile($file);
-
-                foreach ($classes as $className) {
-                    if ($generateDependencies) {
-                        $files = $generator->generateWithDependencies($className);
-                        foreach ($files as $name => $typescript) {
-                            // Skip if already processed in this run
-                            if (isset($processedClasses[$name])) {
-                                continue;
-                            }
-
-                            $this->writeTypeScriptFile($outputDir, $name, $typescript);
-                            $generated++;
-                            $processedClasses[$name] = true;
-                        }
-                    } else {
-                        $typescript = $generator->generate($className);
-                        $shortName = (new \ReflectionClass($className))->getShortName();
-
-                        if (isset($processedClasses[$shortName])) {
+                if ($generateDependencies) {
+                    $files = $generator->generateWithDependencies($className);
+                    foreach ($files as $name => $typescript) {
+                        // Skip if already processed in this run
+                        if (isset($processedClasses[$name])) {
                             continue;
                         }
 
-                        $this->writeTypeScriptFile($outputDir, $shortName, $typescript);
+                        $this->writeTypeScriptFile($outputDir, $name, $typescript);
                         $generated++;
-                        $processedClasses[$shortName] = true;
+                        $processedClasses[$name] = true;
                     }
+                } else {
+                    $typescript = $generator->generate($className);
+                    $shortName = (new \ReflectionClass($className))->getShortName();
+
+                    if (isset($processedClasses[$shortName])) {
+                        continue;
+                    }
+
+                    $this->writeTypeScriptFile($outputDir, $shortName, $typescript);
+                    $generated++;
+                    $processedClasses[$shortName] = true;
                 }
             } catch (\Throwable $e) {
-                $errors[] = "Error processing {$file}: {$e->getMessage()}";
+                $errors[] = "Error processing {$className}: {$e->getMessage()}";
             }
 
             $io->progressAdvance();
@@ -192,5 +237,26 @@ class GenerateCommand extends Command
     {
         $filename = $outputDir . '/' . $className . '.ts';
         file_put_contents($filename, $content);
+    }
+
+    /**
+     * Resolve namespace pattern to list of class names using PSR-4
+     *
+     * @return string[] List of fully qualified class names
+     */
+    private function resolveNamespacePattern(string $namespacePattern, string $baseDir, ?string $namespacePrefix, SymfonyStyle $io): array
+    {
+        if ($namespacePrefix) {
+            $io->note("Resolving namespace pattern: {$namespacePattern} with base dir: {$baseDir} and prefix: {$namespacePrefix}");
+        } else {
+            $io->note("Resolving namespace pattern: {$namespacePattern} with base dir: {$baseDir}");
+        }
+
+        $resolver = new NamespaceResolver($baseDir, $namespacePrefix);
+        $classes = $resolver->resolve($namespacePattern);
+
+        $io->note(sprintf("Found %d class(es)", count($classes)));
+
+        return $classes;
     }
 }

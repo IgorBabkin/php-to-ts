@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2025-10-25
+
+### Added
+- **Namespace-Based Input (PSR-4)**: Generate TypeScript from namespace patterns instead of file paths
+  - Use `--base-dir` to specify PSR-4 base directory (e.g., `src`)
+  - Use `--namespace-prefix` to map namespace to directory (e.g., `App` maps to `src/`)
+  - Supports single class: `vendor/bin/php-to-ts "App\DTO\UserDTO" --base-dir=src --namespace-prefix="App"`
+  - Supports glob patterns: `vendor/bin/php-to-ts "App\DTO\*" --base-dir=src --namespace-prefix="App"`
+  - Example: `"LMS\EV\View\Tariff\*"` generates all Tariff DTOs
+- New `NamespaceResolver` class for PSR-4 namespace-to-file resolution
+  - Converts namespace patterns to file paths following PSR-4 standard
+  - Supports glob patterns: `\App\DTO\*` (direct children) or `\App\DTO\*\*` (recursive)
+  - Handles namespace prefix removal for proper path mapping
+
+### Changed
+- CLI now supports both file-based and namespace-based input
+  - File-based: `vendor/bin/php-to-ts src/DTO` (original behavior, still works)
+  - Namespace-based: `vendor/bin/php-to-ts "App\DTO\*" --base-dir=src` (new)
+- Refactored command execution to process classes directly (more efficient)
+- Progress bar now shows class count instead of file count
+
+### Benefits
+- More intuitive for large projects with organized namespaces
+- Generate DTOs by feature area: `"\LMS\View\Tariff\*"`, `"\App\Api\Transaction\*"`
+- No need to know exact file paths, just namespace patterns
+- Better integration with PSR-4 autoloading standards
+
+### Examples
+```bash
+# Old way (still works)
+vendor/bin/php-to-ts src/LMS/EV/View/Tariff -o types/
+
+# New way (cleaner)
+vendor/bin/php-to-ts "LMS\EV\View\Tariff\*" --base-dir=src --namespace-prefix="LMS\EV" -o types/
+
+# Multiple namespaces
+vendor/bin/php-to-ts "App\DTO\*" --base-dir=src --namespace-prefix="App" -o types/
+vendor/bin/php-to-ts "App\Api\*" --base-dir=src --namespace-prefix="App" -o types/
+```
+
 ## [1.4.1] - 2025-10-25
 
 ### Fixed
