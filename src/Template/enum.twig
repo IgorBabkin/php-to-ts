@@ -5,6 +5,6 @@
 {% endif %}
 export enum {{ className }} {
 {% for case in cases %}
-  {{ case.name }} = '{{ case.value }}',
+  {{ case.name }} = {% if isStringEnum %}'{{ case.value }}'{% else %}{{ case.value }}{% endif %},
 {% endfor %}
 }

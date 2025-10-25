@@ -55,10 +55,15 @@ class TypeScriptGenerator
         $docComment = $reflection->getDocComment();
         $cleanDocComment = $docComment ? $this->cleanDocComment($docComment) : null;
 
+        // Determine if backing type is string (should quote) or int (no quotes)
+        $backingType = $reflection->getBackingType();
+        $isStringEnum = $backingType && $backingType->getName() === 'string';
+
         return $this->twig->render('enum.twig', [
             'className' => $reflection->getShortName(),
             'cases' => $cases,
             'docComment' => $cleanDocComment,
+            'isStringEnum' => $isStringEnum,
         ]);
     }
 

@@ -139,6 +139,9 @@ class ClassAnalyzer
             return null;
         }
 
+        // Tags that are useful in TypeScript/TSDoc
+        $preservedTags = ['@deprecated', '@see', '@link', '@example', '@var'];
+
         // Remove /** and */ and clean up
         $lines = explode("\n", $docComment);
         $cleaned = [];
@@ -148,7 +151,20 @@ class ClassAnalyzer
             $line = preg_replace('/^\*+\s?/', '', $line);
             $line = trim($line, '/* ');
 
-            if (!empty($line) && !str_starts_with($line, '@')) {
+            if (empty($line)) {
+                continue;
+            }
+
+            // Keep line if it's not a tag, or if it's a preserved tag
+            $isPreservedTag = false;
+            foreach ($preservedTags as $tag) {
+                if (str_starts_with($line, $tag)) {
+                    $isPreservedTag = true;
+                    break;
+                }
+            }
+
+            if (!str_starts_with($line, '@') || $isPreservedTag) {
                 $cleaned[] = $line;
             }
         }

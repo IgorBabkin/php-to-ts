@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-10-25
+
+### Added
+- Support for regular class properties (not just constructor properties)
+- Int enum support: numeric values without quotes in TypeScript enums
+- PHPDoc tag preservation: `@deprecated`, `@see`, `@link`, `@example`, `@var`
+- 25 new tests for class properties, comprehensive generation, and PHPDoc support
+- Comprehensive test fixtures: ProjectDTO, TaskDTO, RoleEnum, PriorityEnum
+
+### Fixed
+- Int enums now generate without quotes (e.g., `LOW = 1` instead of `LOW = '1'`)
+- Methods are always omitted from TypeScript interfaces
+- PHPDoc comments with useful tags are now preserved in generated TypeScript
+
+### Changed
+- Improved doc comment extraction to preserve TypeScript-relevant tags
+- Enhanced enum generation template to handle string vs int backing types
+
 ## [1.1.0] - 2025-10-25
 
 ### Changed

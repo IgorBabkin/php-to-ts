@@ -5,15 +5,18 @@ Generate TypeScript interfaces from PHP DTO classes with full support for nested
 ## Features
 
 - ✅ **Simple DTOs**: Convert PHP classes with primitive types to TypeScript interfaces
+- ✅ **Regular Class Properties**: Supports both constructor properties and regular class properties
 - ✅ **Nested Classes**: Automatically handles nested DTOs and generates proper imports
 - ✅ **Automatic Dependency Generation**: By default, generates all nested class files separately (disable with `--no-dependencies`)
 - ✅ **Deep Nesting**: Supports deeply nested structures (3+ levels)
 - ✅ **Arrays & Collections**: Typed arrays with proper TypeScript syntax
-- ✅ **Enums**: PHP 8.1+ enums converted to TypeScript enums
+- ✅ **Enums**: PHP 8.1+ enums converted to TypeScript enums (string and int backed)
+- ✅ **Int Enums**: Numeric enum values without quotes (e.g., `LOW = 1`)
 - ✅ **Nullable Types**: Proper handling of nullable properties
 - ✅ **DateTime**: Converts DateTime objects to string or Date
 - ✅ **Readonly Properties**: Respects PHP 8.1+ readonly modifier
-- ✅ **JSDoc Comments**: Preserves documentation from PHP docblocks
+- ✅ **PHPDoc Tags**: Preserves `@deprecated`, `@see`, `@link`, `@example`, `@var` in TypeScript
+- ✅ **Methods Omitted**: Class methods are automatically excluded from interfaces
 - ✅ **Duplicate Prevention**: Tracks classes within a single run to avoid generating duplicates
 
 ## Requirements
