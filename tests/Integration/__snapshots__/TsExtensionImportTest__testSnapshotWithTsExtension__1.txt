@@ -1,0 +1,14 @@
+import { AddressDTO } from './AddressDTO.ts';
+import { RoleEnum } from './RoleEnum.ts';
+import { UserDTO } from './UserDTO.ts';
+
+/**
+ * DTO with nested dependencies in constructor params
+ */
+export interface NestedDependencyDTO {
+  name: string;
+  primaryAddress: AddressDTO;
+  role: RoleEnum;
+  addresses: AddressDTO[];
+  users: UserDTO[];
+}

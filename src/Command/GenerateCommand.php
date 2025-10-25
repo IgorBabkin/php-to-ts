@@ -42,6 +42,12 @@ class GenerateCommand extends Command
                 null,
                 InputOption::VALUE_NONE,
                 'Do not generate nested class dependencies (default is to generate them)'
+            )
+            ->addOption(
+                'add-ts-extension-to-imports',
+                null,
+                InputOption::VALUE_NONE,
+                'Add .ts extension to import paths (e.g., "./User.ts" instead of "./User")'
             );
     }
 
@@ -52,6 +58,7 @@ class GenerateCommand extends Command
         $outputDir = $input->getOption('output');
         $noDependencies = $input->getOption('no-dependencies');
         $generateDependencies = !$noDependencies; // Generate dependencies by default
+        $addTsExtensionToImports = (bool) $input->getOption('add-ts-extension-to-imports');
 
         if (!file_exists($source)) {
             $io->error("Source path '{$source}' does not exist");
@@ -64,7 +71,7 @@ class GenerateCommand extends Command
             return Command::FAILURE;
         }
 
-        $generator = new PhpToTsGenerator();
+        $generator = new PhpToTsGenerator(addTsExtensionToImports: $addTsExtensionToImports);
         $phpFiles = $this->findPhpFiles($source);
 
         if (empty($phpFiles)) {

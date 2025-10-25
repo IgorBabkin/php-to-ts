@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-10-25
+
+### Added
+- **--add-ts-extension-to-imports** CLI flag to add `.ts` extension to import paths
+  - Generates `import { User } from './User.ts'` instead of `import { User } from './User'`
+  - Useful for ESM-only environments that require explicit file extensions
+  - Available in both CLI and programmatic usage: `new PhpToTsGenerator(addTsExtensionToImports: true)`
+
+### Changed
+- `PhpToTsGenerator` constructor now accepts optional `addTsExtensionToImports` parameter
+- `TypeScriptGenerator` updated to pass flag through to templates
+- Twig template `interface.twig` conditionally adds `.ts` based on flag
+
+### Tests
+- 81 tests passing (1 known issue with nested shaped arrays remains)
+- 5 new tests for `.ts` extension functionality with snapshot coverage
+- New test file: `TsExtensionImportTest`
+
 ## [1.3.1] - 2025-10-25
 
 ### Fixed

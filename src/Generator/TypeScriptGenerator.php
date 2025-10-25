@@ -17,8 +17,9 @@ class TypeScriptGenerator
 {
     private Environment $twig;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly bool $addTsExtensionToImports = false
+    ) {
         $loader = new FilesystemLoader(__DIR__ . '/../Template');
         $this->twig = new Environment($loader, [
             'autoescape' => false,
@@ -33,6 +34,7 @@ class TypeScriptGenerator
             'properties' => $classInfo->getProperties(),
             'imports' => array_values(array_unique($classInfo->getDependencies())),
             'docComment' => $classInfo->getDocComment(),
+            'addTsExtensionToImports' => $this->addTsExtensionToImports,
         ]);
     }
 
@@ -57,6 +59,7 @@ class TypeScriptGenerator
             'cases' => $cases,
             'docComment' => $reflection->getDocComment() ?: null,
             'isStringEnum' => $isStringEnum,
+            'addTsExtensionToImports' => $this->addTsExtensionToImports,
         ]);
     }
 

@@ -21,6 +21,7 @@ Generate TypeScript interfaces from PHP DTO classes with full support for nested
 - ✅ **PHPDoc Tags**: Preserves `@deprecated`, `@see`, `@link`, `@example`, `@var` in TypeScript
 - ✅ **Methods Omitted**: Class methods are automatically excluded from interfaces
 - ✅ **Duplicate Prevention**: Tracks classes within a single run to avoid generating duplicates
+- ✅ **.ts Extension**: Optional flag to add `.ts` extension to imports for ESM compatibility
 
 ## Requirements
 
@@ -61,12 +62,24 @@ vendor/bin/php-to-ts src/DTO --no-dependencies
 vendor/bin/php-to-ts src/DTO -o frontend/types
 ```
 
+**Add .ts extension to imports** (for ESM compatibility):
+
+```bash
+vendor/bin/php-to-ts src/DTO --add-ts-extension-to-imports
+```
+
+This generates imports like `import { User } from './User.ts'` instead of `import { User } from './User'`.
+
 ### Programmatic Usage
 
 ```php
 use PhpToTs\PhpToTsGenerator;
 
+// Basic usage
 $generator = new PhpToTsGenerator();
+
+// With .ts extension in imports
+$generator = new PhpToTsGenerator(addTsExtensionToImports: true);
 
 // Generate single class
 $typescript = $generator->generate(UserDTO::class);

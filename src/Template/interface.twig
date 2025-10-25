@@ -1,6 +1,6 @@
 {% if imports is defined and imports|length > 0 %}
 {% for import in imports %}
-import { {{ import }} } from './{{ import }}';
+import { {{ import }} } from './{{ import }}{% if addTsExtensionToImports %}.ts{% endif %}';
 {% endfor %}
 
 {% endif %}

@@ -1,0 +1,22 @@
+UserDTO: |
+    import { AddressDTO } from './AddressDTO.ts';
+
+    /**
+     * User with nested address
+     */
+    export interface UserDTO {
+      id: string;
+      username: string;
+      address: AddressDTO;
+      billingAddress: AddressDTO | null;
+    }
+AddressDTO: |
+    /**
+     * Address data transfer object
+     */
+    export interface AddressDTO {
+      street: string;
+      city: string;
+      zipCode: string;
+      country: string | null;
+    }

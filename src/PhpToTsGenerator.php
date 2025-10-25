@@ -15,10 +15,11 @@ class PhpToTsGenerator
     private ClassAnalyzer $analyzer;
     private TypeScriptGenerator $generator;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly bool $addTsExtensionToImports = false
+    ) {
         $this->analyzer = new ClassAnalyzer();
-        $this->generator = new TypeScriptGenerator();
+        $this->generator = new TypeScriptGenerator($addTsExtensionToImports);
     }
 
     /**
