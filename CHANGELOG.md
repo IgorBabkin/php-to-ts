@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-10-25
+
+### Fixed
+- **CRITICAL**: PHPDoc `@param` array types in constructor parameters are now properly parsed
+  - `@param array<UserDTO> $users` now generates `users: UserDTO[]` instead of `users: any[]`
+  - `@param array<string, int> $scores` now generates `scores: Record<string, number>` instead of `scores: any[]`
+  - `@param array<string>|null $tags` now generates `tags: string[] | null` instead of `tags: any[] | null`
+- **CRITICAL**: `generateWithDependencies()` now correctly generates all nested class dependencies
+  - Previously only generated the main class, now generates all referenced classes
+  - Dependencies from complex array types are now tracked and generated
+  - Constructor parameter array types now trigger dependency generation
+- Nullable modifier is now preserved when using complex array types
+
+### Changed
+- `ClassAnalyzer` now reads constructor docblock for `@param` tags
+- `extractParamDocComment()` improved regex to handle spaces in complex types
+- `extractComplexArrayType()` now looks for both `@var` and `@param` tags
+- `extractArrayItemType()` now handles `array<Type>` syntax from `@param` tags
+- `extractDependencies()` now extracts class names from complex array types
+- `TwigExtension` applies nullable mapping to complex array types
+
+### Added
+- New method `extractParamDocComment()` to extract `@param` tags for properties
+- New method `extractClassNamesFromComplexType()` to find dependencies in complex arrays
+- 3 new integration tests with snapshot coverage
+- Bug verification script to confirm fixes
+
+### Tests
+- 76 tests passing (1 known issue with nested shaped arrays remains)
+- New fixtures: `ConstructorParamArrayDTO`, `NestedDependencyDTO`
+- New test: `ConstructorParamArrayTest` with 3 test cases
+
 ## [1.3.0] - 2025-10-25
 
 ### Added
